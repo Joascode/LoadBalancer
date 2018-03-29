@@ -3,35 +3,28 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace LoadBalancer
 {
-    class Server
+    class ClientChatter
     {
-        Dictionary<int, Client> clients = new Dictionary<int, Client>();
-        Queue<Client> messages = new Queue<Client>();
-        Action<byte[]> callback;
-        TcpClient server;
+        private TcpClient client;
+        private Action<byte[]> callback;
+        private NetworkStream stream;
 
         public static int Id { get; set; }
+        public Queue<Client> messages = new Queue<Client>();
 
-        public Server(string ip, int port, Action<byte[]> callback)
+
+        public ClientChatter(TcpClient client, Action<byte[]> callback)
         {
-            Id++;
-            server = new TcpClient();
-            server.Connect(ip, port);
+            this.client = client;
             this.callback = callback;
+            Id++;
             RunMessageTask();
-        }
-
-        public void AddClient(Client client)
-        {
-            clients.Add(client.Id, client);
-            AddMessage(client);
         }
 
         public void AddMessage(Client client)
@@ -45,7 +38,7 @@ namespace LoadBalancer
             {
                 Task.Run(() => HandleMessages());
             }
-            catch(Exception e) when (
+            catch (Exception e) when (
                 e is ArgumentNullException
             )
             {
@@ -53,16 +46,43 @@ namespace LoadBalancer
             }
         }
 
+        /*private void ReceiveMessage()
+        {
+            byte[] buffer = new byte[1024];
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int bytesRead;
+                do
+                {
+                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    ms.Write(buffer, 0, bytesRead);
+
+                } while (stream.DataAvailable);
+
+                byte[] tempBuffer = ms.ToArray();
+                ms.Flush();
+
+                callback(tempBuffer);
+            }
+        }
+
+        public void SendMessage(Client message)
+        {
+            
+        }*/
+
         private void HandleMessages()
         {
             int bytesRead;
             byte[] buffer = new byte[1024];
 
-            while(server.Connected)
+            using (NetworkStream stream = client.GetStream())
+            using (MemoryStream ms = new MemoryStream())
             {
-                using (NetworkStream stream = server.GetStream())
-                using(MemoryStream ms = new MemoryStream())
+                while (client.Connected)
                 {
+                
                     if (messages.Count > 0)
                     {
                         Client client = messages.Dequeue();
@@ -83,6 +103,5 @@ namespace LoadBalancer
                 }
             }
         }
-        
     }
 }
