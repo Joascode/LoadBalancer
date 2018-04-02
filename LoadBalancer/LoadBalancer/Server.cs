@@ -17,11 +17,15 @@ namespace LoadBalancer
         Action<byte[]> callback;
         TcpClient server;
 
-        public static int Id { get; set; }
+        public int Id { get; set; }
 
         public Server(string ip, int port, Action<byte[]> callback)
         {
-            Id++;
+            Random random = new Random();
+            int randomId = random.Next(1, 10);
+            Id = randomId;
+            Console.WriteLine($"ServerId: {Id}");
+
             server = new TcpClient();
             server.Connect(ip, port);
             this.callback = callback;
@@ -31,6 +35,7 @@ namespace LoadBalancer
         public void AddClient(Client client)
         {
             clients.Add(client.Id, client);
+            Console.WriteLine(client.Message);
             AddMessage(client);
         }
 
@@ -58,28 +63,34 @@ namespace LoadBalancer
             int bytesRead;
             byte[] buffer = new byte[1024];
 
-            while(server.Connected)
+            using (NetworkStream stream = server.GetStream())
+            using (MemoryStream ms = new MemoryStream())
             {
-                using (NetworkStream stream = server.GetStream())
-                using(MemoryStream ms = new MemoryStream())
+                while (server.Connected)
                 {
                     if (messages.Count > 0)
                     {
+                        Console.WriteLine("Writing.");
                         Client client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
+                        Console.WriteLine(clientAsString);
                     }
 
-                    do
+                    if (stream.DataAvailable)
                     {
-                        bytesRead = stream.Read(buffer, 0, buffer.Length);
-                        ms.Write(buffer, 0, bytesRead);
-                    } while (stream.DataAvailable);
+                        do
+                        {
+                            Console.WriteLine("Reading.");
+                            bytesRead = stream.Read(buffer, 0, buffer.Length);
+                            ms.Write(buffer, 0, bytesRead);
+                        } while (stream.DataAvailable);
 
-                    callback(ms.ToArray());
-                    ms.Flush();
+                        callback(ms.ToArray());
+                        ms.Flush();
 
-                    buffer = new byte[1024];
+                        buffer = new byte[1024];
+                    }
                 }
             }
         }

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace LoadBalancer
 {
-    class LoadBalancer
+    class LoadBalancerImpl
     {
         Dictionary<int, Server> servers = new Dictionary<int, Server>();
         Dictionary<int, int> sessions = new Dictionary<int, int>();
@@ -21,7 +21,7 @@ namespace LoadBalancer
 
         public int BufferSize { get; set; }
 
-        public LoadBalancer(string ip = "127.0.0.1", int port = 8080)
+        public LoadBalancerImpl(string ip = "127.0.0.1", int port = 8081)
         {
             // Encapsulate with try/catch
             tcpListener = new TcpListener(IPAddress.Parse(ip), port);
@@ -37,9 +37,10 @@ namespace LoadBalancer
                 TcpClient client = await tcpListener.AcceptTcpClientAsync();
                 if(client != null)
                 {
+                    Console.WriteLine("Client connected.");
                     //Task.Run(() => HandleClientConnection(client));
                     ClientChatter chatter = new ClientChatter(client, ClientMessageReceivedCallback);
-                    clients.Add(ClientChatter.Id, chatter);
+                    clients.Add(chatter.Id, chatter);
                 }
             }
             catch(Exception e) when (
@@ -56,13 +57,14 @@ namespace LoadBalancer
         public void AddServer(string ip, int port)
         {
             Server server = new Server(ip, port, ServerMessageReceivedCallback);
-            servers.Add(Server.Id, server);
+            servers.Add(server.Id, server);
         }
 
         // Bridge between Server and Client.
         public void ServerMessageReceivedCallback(byte[] message)
         {
             string stringMessage = Encoding.ASCII.GetString(message);
+            Console.WriteLine(stringMessage);
             Client client = JsonConvert.DeserializeObject<Client>(stringMessage);
 
             if(clients.TryGetValue(client.Id, out ClientChatter chatter))
@@ -75,10 +77,12 @@ namespace LoadBalancer
         public void ClientMessageReceivedCallback(byte[] message)
         {
             string stringMessage = Encoding.ASCII.GetString(message);
+            Console.WriteLine(stringMessage);
             Client client = JsonConvert.DeserializeObject<Client>(stringMessage);
 
             if (sessions.TryGetValue(client.Id, out int serverId))
             {
+                Console.WriteLine("Session exists.");
                 if(servers.TryGetValue(serverId, out Server server))
                 {
                     server.AddMessage(client);
@@ -87,11 +91,13 @@ namespace LoadBalancer
             }
             else
             {
+                Console.WriteLine("Connecting to new Server.");
                 Random random = new Random();
                 int rndNumber = random.Next(servers.Count);
-
+                Console.WriteLine($"Server #{rndNumber}");
                 Server server = servers.ElementAt(rndNumber).Value;
                 server.AddClient(client);
+                sessions.Add(client.Id, server.Id);
             }
         }
 

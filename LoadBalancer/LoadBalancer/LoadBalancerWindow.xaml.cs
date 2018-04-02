@@ -20,9 +20,19 @@ namespace LoadBalancer
     /// </summary>
     public partial class MainWindow : Window
     {
+        private LoadBalancerImpl lb;
+
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void StartBtn_Click(object sender, RoutedEventArgs e)
+        {
+            lb = new LoadBalancerImpl(port: 8085);
+            lb.Listen();
+
+            lb.AddServer("127.0.0.1", 8081);
         }
     }
 }

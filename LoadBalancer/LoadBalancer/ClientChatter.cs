@@ -15,7 +15,7 @@ namespace LoadBalancer
         private Action<byte[]> callback;
         private NetworkStream stream;
 
-        public static int Id { get; set; }
+        public int Id { get; set; }
         public Queue<Client> messages = new Queue<Client>();
 
 
@@ -23,7 +23,13 @@ namespace LoadBalancer
         {
             this.client = client;
             this.callback = callback;
-            Id++;
+
+            Random random = new Random();
+            int randomId = random.Next(1, 10);
+            Id = randomId;
+
+            Console.WriteLine($"ClientChatterId: {Id}");
+
             RunMessageTask();
         }
 
@@ -90,16 +96,20 @@ namespace LoadBalancer
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                     }
 
-                    do
+                    if(stream.DataAvailable)
                     {
-                        bytesRead = stream.Read(buffer, 0, buffer.Length);
-                        ms.Write(buffer, 0, bytesRead);
-                    } while (stream.DataAvailable);
+                        do
+                        {
+                            bytesRead = stream.Read(buffer, 0, buffer.Length);
+                            ms.Write(buffer, 0, bytesRead);
+                        } while (stream.DataAvailable);
 
-                    callback(ms.ToArray());
-                    ms.Flush();
+                        callback(ms.ToArray());
+                        ms.SetLength(0);
 
-                    buffer = new byte[1024];
+                        buffer = new byte[1024];
+                        bytesRead = 0;
+                    }
                 }
             }
         }
