@@ -17,6 +17,8 @@ namespace LoadBalancer
         Action<byte[]> callback;
         TcpClient server;
 
+        public string guid = Guid.NewGuid().ToString();
+
         public int Id { get; set; }
 
         public Server(string ip, int port, Action<byte[]> callback)
