@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LoadBalancer
 {
-    class Client
+    class ClientMessage
     {
         public int Id { get; set; }
         public string Message { get; set; }

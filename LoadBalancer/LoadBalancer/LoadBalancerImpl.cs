@@ -65,7 +65,7 @@ namespace LoadBalancer
         {
             string stringMessage = Encoding.ASCII.GetString(message);
             Console.WriteLine(stringMessage);
-            Client client = JsonConvert.DeserializeObject<Client>(stringMessage);
+            ClientMessage client = JsonConvert.DeserializeObject<ClientMessage>(stringMessage);
 
             if(clients.TryGetValue(client.Id, out ClientChatter chatter))
             {
@@ -78,7 +78,7 @@ namespace LoadBalancer
         {
             string stringMessage = Encoding.ASCII.GetString(message);
             Console.WriteLine(stringMessage);
-            Client client = JsonConvert.DeserializeObject<Client>(stringMessage);
+            ClientMessage client = JsonConvert.DeserializeObject<ClientMessage>(stringMessage);
 
             if (sessions.TryGetValue(client.Id, out int serverId))
             {

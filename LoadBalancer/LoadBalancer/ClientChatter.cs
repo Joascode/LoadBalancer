@@ -16,7 +16,7 @@ namespace LoadBalancer
         private NetworkStream stream;
 
         public int Id { get; set; }
-        public Queue<Client> messages = new Queue<Client>();
+        public Queue<ClientMessage> messages = new Queue<ClientMessage>();
 
 
         public ClientChatter(TcpClient client, Action<byte[]> callback)
@@ -33,7 +33,7 @@ namespace LoadBalancer
             RunMessageTask();
         }
 
-        public void AddMessage(Client client)
+        public void AddMessage(ClientMessage client)
         {
             messages.Enqueue(client);
         }
@@ -91,7 +91,7 @@ namespace LoadBalancer
                 
                     if (messages.Count > 0)
                     {
-                        Client client = messages.Dequeue();
+                        ClientMessage client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                     }

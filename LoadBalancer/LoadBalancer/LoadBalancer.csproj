@@ -67,7 +67,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Client.cs" />
+    <Compile Include="ClientMessage.cs" />
     <Compile Include="LoadBalancerImpl.cs" />
     <Compile Include="LoadBalancerWindow.xaml.cs">
       <DependentUpon>LoadBalancerWindow.xaml</DependentUpon>
