@@ -38,7 +38,6 @@ namespace LoadBalancer
                 if(client != null)
                 {
                     Console.WriteLine("Client connected.");
-                    //Task.Run(() => HandleClientConnection(client));
                     ClientChatter chatter = new ClientChatter(client, ClientMessageReceivedCallback);
                     clients.Add(chatter.Id, chatter);
                 }
@@ -61,6 +60,7 @@ namespace LoadBalancer
         }
 
         // Bridge between Server and Client.
+        //TODO: Change to work with flexible implementation of sessions/cookies.
         public void ServerMessageReceivedCallback(byte[] message)
         {
             string stringMessage = Encoding.ASCII.GetString(message);
@@ -76,7 +76,7 @@ namespace LoadBalancer
         // Bridge between Client and Server.
         public void ClientMessageReceivedCallback(Message client)
         {
-
+            //TODO: Clean this up in the Sessionstorage implementation. Unnecessary information here.
             if(sessions != null)
             {
                 if (client.Headers.ContainsKey("Id"))
@@ -93,6 +93,7 @@ namespace LoadBalancer
                 }
             }
             
+            //TODO: Clean this shit up.
             else
             {
                 Console.WriteLine("Connecting to new Server.");

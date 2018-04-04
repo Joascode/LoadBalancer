@@ -63,6 +63,7 @@ namespace LoadBalancer
             }
         }
 
+        //TODO: Clean this method up.
         private void HandleMessages()
         {
             int bytesRead;

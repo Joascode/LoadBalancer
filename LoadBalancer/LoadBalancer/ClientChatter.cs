@@ -51,8 +51,7 @@ namespace LoadBalancer
             }
         }
 
-        //TODO: Add method to add chatter ID to received message for management.
-
+        //TODO: Clean this method up.
         private void HandleMessages()
         {
             int bytesRead;
