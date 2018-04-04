@@ -12,28 +12,27 @@ namespace LoadBalancer
     class ClientChatter
     {
         private TcpClient client;
-        private Action<byte[]> callback;
-        private NetworkStream stream;
+        private Action<Message> callback;
 
-        public int Id { get; set; }
-        public Queue<ClientMessage> messages = new Queue<ClientMessage>();
+        public string Id { get; set; }
+        public Queue<Message> messages = new Queue<Message>();
 
 
-        public ClientChatter(TcpClient client, Action<byte[]> callback)
+        public ClientChatter(TcpClient client, Action<Message> callback)
         {
             this.client = client;
             this.callback = callback;
 
             Random random = new Random();
             int randomId = random.Next(1, 10);
-            Id = randomId;
+            Id = randomId.ToString();
 
             Console.WriteLine($"ClientChatterId: {Id}");
 
             RunMessageTask();
         }
 
-        public void AddMessage(ClientMessage client)
+        public void AddMessage(Message client)
         {
             messages.Enqueue(client);
         }
@@ -52,31 +51,7 @@ namespace LoadBalancer
             }
         }
 
-        /*private void ReceiveMessage()
-        {
-            byte[] buffer = new byte[1024];
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                int bytesRead;
-                do
-                {
-                    bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    ms.Write(buffer, 0, bytesRead);
-
-                } while (stream.DataAvailable);
-
-                byte[] tempBuffer = ms.ToArray();
-                ms.Flush();
-
-                callback(tempBuffer);
-            }
-        }
-
-        public void SendMessage(Client message)
-        {
-            
-        }*/
+        //TODO: Add method to add chatter ID to received message for management.
 
         private void HandleMessages()
         {
@@ -91,7 +66,7 @@ namespace LoadBalancer
                 
                     if (messages.Count > 0)
                     {
-                        ClientMessage client = messages.Dequeue();
+                        Message client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                     }
@@ -104,7 +79,7 @@ namespace LoadBalancer
                             ms.Write(buffer, 0, bytesRead);
                         } while (stream.DataAvailable);
 
-                        callback(ms.ToArray());
+                        callback(ConvertByteToMessage(ms.ToArray()));
                         ms.SetLength(0);
 
                         buffer = new byte[1024];
@@ -112,6 +87,15 @@ namespace LoadBalancer
                     }
                 }
             }
+        }
+
+        private Message ConvertByteToMessage(byte[] message)
+        {
+            string stringMessage = Encoding.ASCII.GetString(message);
+            Console.WriteLine(stringMessage);
+            Message client = JsonConvert.DeserializeObject<Message>(stringMessage);
+
+            return client;
         }
     }
 }

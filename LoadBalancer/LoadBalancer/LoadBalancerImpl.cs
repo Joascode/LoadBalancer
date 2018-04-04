@@ -13,15 +13,15 @@ namespace LoadBalancer
 {
     class LoadBalancerImpl
     {
-        Dictionary<int, Server> servers = new Dictionary<int, Server>();
-        Dictionary<int, int> sessions = new Dictionary<int, int>();
-        Dictionary<int, ClientChatter> clients = new Dictionary<int, ClientChatter>();
+        Dictionary<string, Server> servers = new Dictionary<string, Server>();
+        SessionStorage sessions;
+        Dictionary<string, ClientChatter> clients = new Dictionary<string, ClientChatter>();
 
         TcpListener tcpListener;
 
         public int BufferSize { get; set; }
 
-        public LoadBalancerImpl(string ip = "127.0.0.1", int port = 8081)
+        public LoadBalancerImpl(string ip = "127.0.0.1", int port = 8080)
         {
             // Encapsulate with try/catch
             tcpListener = new TcpListener(IPAddress.Parse(ip), port);
@@ -65,30 +65,34 @@ namespace LoadBalancer
         {
             string stringMessage = Encoding.ASCII.GetString(message);
             Console.WriteLine(stringMessage);
-            ClientMessage client = JsonConvert.DeserializeObject<ClientMessage>(stringMessage);
+            Message client = JsonConvert.DeserializeObject<Message>(stringMessage);
 
-            if(clients.TryGetValue(client.Id, out ClientChatter chatter))
+            if(clients.TryGetValue(client.Headers["Id"], out ClientChatter chatter))
             {
                 chatter.AddMessage(client);
             }
         }
 
         // Bridge between Client and Server.
-        public void ClientMessageReceivedCallback(byte[] message)
+        public void ClientMessageReceivedCallback(Message client)
         {
-            string stringMessage = Encoding.ASCII.GetString(message);
-            Console.WriteLine(stringMessage);
-            ClientMessage client = JsonConvert.DeserializeObject<ClientMessage>(stringMessage);
 
-            if (sessions.TryGetValue(client.Id, out int serverId))
+            if(sessions != null)
             {
-                Console.WriteLine("Session exists.");
-                if(servers.TryGetValue(serverId, out Server server))
+                if (client.Headers.ContainsKey("Id"))
                 {
-                    server.AddMessage(client);
+                    if (sessions.GetServerIdForClient(client.Headers["Id"], out string serverId))
+                    {
+                        Console.WriteLine("Session exists.");
+                        if (servers.TryGetValue(serverId, out Server server))
+                        {
+                            server.AddMessage(client);
+                        }
+
+                    }
                 }
-                
             }
+            
             else
             {
                 Console.WriteLine("Connecting to new Server.");
@@ -96,10 +100,13 @@ namespace LoadBalancer
                 int rndNumber = random.Next(servers.Count);
                 Console.WriteLine($"Server #{rndNumber}");
                 Server server = servers.ElementAt(rndNumber).Value;
+
+                client.Headers.Add("Id", random.Next().ToString());
+                Console.WriteLine(client.Headers);
+
                 server.AddClient(client);
-                sessions.Add(client.Id, server.Id);
+                sessions.AddSession(client.Headers["Id"], server.Id);
             }
         }
-
     }
 }

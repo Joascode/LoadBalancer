@@ -59,6 +59,7 @@
     </ApplicationDefinition>
     <Compile Include="ClientChatter.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="SessionStorage.cs" />
     <Page Include="LoadBalancerWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -67,7 +68,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ClientMessage.cs" />
+    <Compile Include="Message.cs" />
     <Compile Include="LoadBalancerImpl.cs" />
     <Compile Include="LoadBalancerWindow.xaml.cs">
       <DependentUpon>LoadBalancerWindow.xaml</DependentUpon>

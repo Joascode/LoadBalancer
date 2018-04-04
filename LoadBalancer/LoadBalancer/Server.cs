@@ -12,14 +12,14 @@ namespace LoadBalancer
 {
     class Server
     {
-        Dictionary<int, ClientMessage> clients = new Dictionary<int, ClientMessage>();
-        Queue<ClientMessage> messages = new Queue<ClientMessage>();
+        Dictionary<string, Message> clients = new Dictionary<string, Message>();
+        Queue<Message> messages = new Queue<Message>();
         Action<byte[]> callback;
         TcpClient server;
 
         public string guid = Guid.NewGuid().ToString();
 
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         public Server(string ip, int port, Action<byte[]> callback)
         {
@@ -34,14 +34,17 @@ namespace LoadBalancer
             RunMessageTask();
         }
 
-        public void AddClient(ClientMessage client)
+        public void AddClient(Message client)
         {
-            clients.Add(client.Id, client);
-            Console.WriteLine(client.Message);
-            AddMessage(client);
+            if(client.Headers.TryGetValue("Id", out string Id))
+            {
+                clients.Add(Id, client);
+                Console.WriteLine(client.Body);
+                AddMessage(client);
+            }
         }
 
-        public void AddMessage(ClientMessage client)
+        public void AddMessage(Message client)
         {
             messages.Enqueue(client);
         }
@@ -73,7 +76,7 @@ namespace LoadBalancer
                     if (messages.Count > 0)
                     {
                         Console.WriteLine("Writing.");
-                        ClientMessage client = messages.Dequeue();
+                        Message client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                         Console.WriteLine(clientAsString);
