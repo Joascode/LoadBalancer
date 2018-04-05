@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Messages;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,8 +13,8 @@ namespace LoadBalancer
 {
     class Server
     {
-        Dictionary<string, Message> clients = new Dictionary<string, Message>();
-        Queue<Message> messages = new Queue<Message>();
+        Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
+        Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
         Action<byte[]> callback;
         TcpClient server;
 
@@ -25,7 +26,7 @@ namespace LoadBalancer
         {
             Random random = new Random();
             int randomId = random.Next(1, 10);
-            Id = randomId;
+            Id = randomId.ToString();
             Console.WriteLine($"ServerId: {Id}");
 
             server = new TcpClient();
@@ -34,7 +35,7 @@ namespace LoadBalancer
             RunMessageTask();
         }
 
-        public void AddClient(Message client)
+        public void AddClient(Message<string, string> client)
         {
             if(client.Headers.TryGetValue("Id", out string Id))
             {
@@ -44,7 +45,7 @@ namespace LoadBalancer
             }
         }
 
-        public void AddMessage(Message client)
+        public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);
         }
@@ -77,7 +78,7 @@ namespace LoadBalancer
                     if (messages.Count > 0)
                     {
                         Console.WriteLine("Writing.");
-                        Message client = messages.Dequeue();
+                        Message<string, string> client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                         Console.WriteLine(clientAsString);

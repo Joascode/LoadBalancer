@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Messages;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,13 +13,13 @@ namespace LoadBalancer
     class ClientChatter
     {
         private TcpClient client;
-        private Action<Message> callback;
+        private Action<Message<string, string>> callback;
 
         public string Id { get; set; }
-        public Queue<Message> messages = new Queue<Message>();
+        public Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
 
 
-        public ClientChatter(TcpClient client, Action<Message> callback)
+        public ClientChatter(TcpClient client, Action<Message<string, string>> callback)
         {
             this.client = client;
             this.callback = callback;
@@ -32,7 +33,7 @@ namespace LoadBalancer
             RunMessageTask();
         }
 
-        public void AddMessage(Message client)
+        public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);
         }
@@ -65,7 +66,7 @@ namespace LoadBalancer
                 
                     if (messages.Count > 0)
                     {
-                        Message client = messages.Dequeue();
+                        Message<string, string> client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                     }
@@ -88,11 +89,11 @@ namespace LoadBalancer
             }
         }
 
-        private Message ConvertByteToMessage(byte[] message)
+        private Message<string, string> ConvertByteToMessage(byte[] message)
         {
             string stringMessage = Encoding.ASCII.GetString(message);
             Console.WriteLine(stringMessage);
-            Message client = JsonConvert.DeserializeObject<Message>(stringMessage);
+            Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
 
             return client;
         }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using LBAlgorithm;
+using ServerAffinity;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -28,6 +30,8 @@ namespace LoadBalancer
         {
             InitializeComponent();
             //ServerListDataGrid.DataContext = ServerList;
+            Algorithms.ItemsSource = Utils.GetAssemblyNamesForTypes(typeof(ILBAlgorithm));
+            ServerAffinities.ItemsSource = Utils.GetServerAffinitys(typeof(IServerAffinity<,>));
         }
 
         private void StartBtn_Click(object sender, RoutedEventArgs e)

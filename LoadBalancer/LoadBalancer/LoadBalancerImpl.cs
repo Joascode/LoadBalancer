@@ -1,4 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using LBAlgorithm;
+using Messages;
+using Newtonsoft.Json;
+using ServerAffinity;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,8 +17,9 @@ namespace LoadBalancer
     class LoadBalancerImpl
     {
         Dictionary<string, Server> servers = new Dictionary<string, Server>();
-        SessionStorage sessions;
+        IServerAffinity<string, string> sessions;// = new SessionStorage();
         Dictionary<string, ClientChatter> clients = new Dictionary<string, ClientChatter>();
+        ILBAlgorithm algorithm;
 
         TcpListener tcpListener;
 
@@ -25,7 +29,13 @@ namespace LoadBalancer
         {
             // Encapsulate with try/catch
             tcpListener = new TcpListener(IPAddress.Parse(ip), port);
+            //AlgorithmPicker("RD");
         }
+
+        /*public void AlgorithmPicker(string algoName)
+        {
+            algorithm = AlgorithmFactory.GetAlgorithm(algoName);
+        }*/
 
         public async void Listen()
         {
@@ -65,7 +75,7 @@ namespace LoadBalancer
         {
             string stringMessage = Encoding.ASCII.GetString(message);
             Console.WriteLine(stringMessage);
-            Message client = JsonConvert.DeserializeObject<Message>(stringMessage);
+            Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
 
             if(clients.TryGetValue(client.Headers["Id"], out ClientChatter chatter))
             {
@@ -74,7 +84,7 @@ namespace LoadBalancer
         }
 
         // Bridge between Client and Server.
-        public void ClientMessageReceivedCallback(Message client)
+        public void ClientMessageReceivedCallback(Message<string, string> client)
         {
             //TODO: Clean this up in the Sessionstorage implementation. Unnecessary information here.
             if(sessions != null)
@@ -98,16 +108,27 @@ namespace LoadBalancer
             {
                 Console.WriteLine("Connecting to new Server.");
                 Random random = new Random();
-                int rndNumber = random.Next(servers.Count);
+                /*int rndNumber = random.Next(servers.Count);
                 Console.WriteLine($"Server #{rndNumber}");
-                Server server = servers.ElementAt(rndNumber).Value;
+                Server server = servers.ElementAt(rndNumber).Value;*/
+
+                Server server = ServerPicker();
 
                 client.Headers.Add("Id", random.Next().ToString());
                 Console.WriteLine(client.Headers);
 
                 server.AddClient(client);
-                sessions.AddSession(client.Headers["Id"], server.Id);
+                //sessions.AddSession(client.Headers["Id"], server.Id);
             }
+        }
+
+        //Add session check.
+        private Server ServerPicker()
+        {
+            int pos = algorithm.GetServerArrayPosition(servers.Count);
+            Console.WriteLine("Chosen position: " + pos);
+            Console.WriteLine("Amount of options: " + servers.Count);
+            return servers.ElementAt(pos).Value;
         }
     }
 }

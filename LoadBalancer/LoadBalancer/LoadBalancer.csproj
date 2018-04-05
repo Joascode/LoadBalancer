@@ -34,8 +34,29 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CookieStorage">
+      <HintPath>C:\Users\Boontje\source\repos\CookieStorage\CookieStorage\obj\Debug\netstandard2.0\CookieStorage.dll</HintPath>
+    </Reference>
+    <Reference Include="LBAlgorithm">
+      <HintPath>C:\Users\Boontje\source\repos\LBAlgorithm\LBAlgorithm\obj\Debug\netstandard2.0\LBAlgorithm.dll</HintPath>
+    </Reference>
+    <Reference Include="Message">
+      <HintPath>C:\Users\Boontje\source\repos\Message\Message\obj\Debug\netstandard2.0\Message.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="RandomAlgorithm">
+      <HintPath>C:\Users\Boontje\source\repos\RandomAlgorithm\RandomAlgorithm\obj\Debug\netstandard2.0\RandomAlgorithm.dll</HintPath>
+    </Reference>
+    <Reference Include="RoundRobinAlgorithm">
+      <HintPath>C:\Users\Boontje\source\repos\RoundRobinAlgorithm\RoundRobinAlgorithm\obj\Debug\netstandard2.0\RoundRobinAlgorithm.dll</HintPath>
+    </Reference>
+    <Reference Include="ServerAffinity">
+      <HintPath>C:\Users\Boontje\source\repos\ServerAffinity\ServerAffinity\obj\Debug\netstandard2.0\ServerAffinity.dll</HintPath>
+    </Reference>
+    <Reference Include="SessionStorage">
+      <HintPath>C:\Users\Boontje\source\repos\SessionStorage\SessionStorage\obj\Debug\netstandard2.0\SessionStorage.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -57,9 +78,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AlgorithmFactory.cs" />
     <Compile Include="ClientChatter.cs" />
+    <Compile Include="CookieStorage.cs" />
+    <Compile Include="ISessionStorage.cs" />
+    <Compile Include="RandomAlgorithm.cs" />
+    <Compile Include="RoundRobinAlgorithm.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="SessionStorage.cs" />
+    <Compile Include="Utils.cs" />
     <Page Include="LoadBalancerWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -68,7 +95,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Message.cs" />
     <Compile Include="LoadBalancerImpl.cs" />
     <Compile Include="LoadBalancerWindow.xaml.cs">
       <DependentUpon>LoadBalancerWindow.xaml</DependentUpon>

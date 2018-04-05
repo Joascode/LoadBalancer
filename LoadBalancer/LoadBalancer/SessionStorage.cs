@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace LoadBalancer
 {
     //TODO: Change to work with interface for reflection purposes.
-    class SessionStorage
+    /*class SessionStorage : ISessionStorage<string, string>
     {
         public Dictionary<string, string> Sessions { get; set; }
 
@@ -44,5 +44,5 @@ namespace LoadBalancer
         {
             Sessions.Remove(clientId);
         }
-    }
+    }*/
 }
