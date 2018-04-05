@@ -38,9 +38,6 @@ namespace LoadBalancer
         {
             lb = new LoadBalancerImpl(port: 8080);
             lb.Listen();
-
-            //TODO: Add eventhandler to add server to update ServerList.
-            //lb.AddServer("127.0.0.1", 8081);
         }
 
         private void AddServer_KeyDown(object sender, KeyEventArgs e)
@@ -58,7 +55,7 @@ namespace LoadBalancer
                         if (lb == null) Console.WriteLine("Can't add servers before starting the load balancer.");
                         else
                         {
-                            lb.AddServer("127.0.0.1", port);
+                            lb.AddServer("127.0.0.1", port, (server) => ServerList.Add(server));
                             Console.WriteLine($"Added server with port: {port}");
                         }
                     }

@@ -18,6 +18,8 @@ namespace LoadBalancer
         public string Id { get; set; }
         public Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
 
+        private const int BUFFER_SIZE = 1024;
+
 
         public ClientChatter(TcpClient client, Action<Message<string, string>> callback)
         {
@@ -56,7 +58,7 @@ namespace LoadBalancer
         private void HandleMessages()
         {
             int bytesRead;
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[BUFFER_SIZE];
 
             using (NetworkStream stream = client.GetStream())
             using (MemoryStream ms = new MemoryStream())
@@ -82,7 +84,7 @@ namespace LoadBalancer
                         callback(ConvertByteToMessage(ms.ToArray()));
                         ms.SetLength(0);
 
-                        buffer = new byte[1024];
+                        buffer = new byte[BUFFER_SIZE];
                         bytesRead = 0;
                     }
                 }
@@ -94,7 +96,6 @@ namespace LoadBalancer
             string stringMessage = Encoding.ASCII.GetString(message);
             Console.WriteLine(stringMessage);
             Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
-
             return client;
         }
     }

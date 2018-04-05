@@ -24,11 +24,25 @@ namespace LoadBalancer
         TcpListener tcpListener;
 
         public int BufferSize { get; set; }
+        private const string IP_ADDRESS = "127.0.0.1";
+        private const int PORT = 8080;
 
-        public LoadBalancerImpl(string ip = "127.0.0.1", int port = 8080)
+        public LoadBalancerImpl(string ip = IP_ADDRESS, int port = PORT)
         {
             // Encapsulate with try/catch
-            tcpListener = new TcpListener(IPAddress.Parse(ip), port);
+            try
+            {
+                tcpListener = new TcpListener(IPAddress.Parse(ip), port);
+            }
+            catch(Exception e) when (
+                e is ArgumentNullException ||
+                e is ArgumentOutOfRangeException
+            )
+            {
+                Console.WriteLine("Couldn't create a TcpListener, reason: " + e.Message);
+            }
+
+            
             //AlgorithmPicker("RD");
         }
 
@@ -39,7 +53,6 @@ namespace LoadBalancer
 
         public async void Listen()
         {
-            //Start listener.
             tcpListener.Start();
 
             try
@@ -59,24 +72,20 @@ namespace LoadBalancer
                 e is ArgumentException
             )
             {
-                Console.WriteLine("An error occured: " + e.Message);
+                Console.WriteLine("Something went wrong when accepting a TcpClient, reason: " + e.Message);
             }
         }
 
-        public void AddServer(string ip, int port)
+        public void AddServer(string ip, int port, Action<Server> AddServerCallback)
         {
             Server server = new Server(ip, port, ServerMessageReceivedCallback);
             servers.Add(server.Id, server);
+            AddServerCallback(server);
         }
 
         // Bridge between Server and Client.
-        //TODO: Change to work with flexible implementation of sessions/cookies.
-        public void ServerMessageReceivedCallback(byte[] message)
+        public void ServerMessageReceivedCallback(Message<string, string> client)
         {
-            string stringMessage = Encoding.ASCII.GetString(message);
-            Console.WriteLine(stringMessage);
-            Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
-
             if(clients.TryGetValue(client.Headers["Id"], out ClientChatter chatter))
             {
                 chatter.AddMessage(client);
@@ -86,7 +95,7 @@ namespace LoadBalancer
         // Bridge between Client and Server.
         public void ClientMessageReceivedCallback(Message<string, string> client)
         {
-            //TODO: Clean this up in the Sessionstorage implementation. Unnecessary information here.
+            //TODO: Clean this up in the Sessionstorage implementation. Unnecessary information here. See new function at the bottom.
             if(sessions != null)
             {
                 if (client.Headers.ContainsKey("Id"))
@@ -108,17 +117,12 @@ namespace LoadBalancer
             {
                 Console.WriteLine("Connecting to new Server.");
                 Random random = new Random();
-                /*int rndNumber = random.Next(servers.Count);
-                Console.WriteLine($"Server #{rndNumber}");
-                Server server = servers.ElementAt(rndNumber).Value;*/
 
                 Server server = ServerPicker();
 
                 client.Headers.Add("Id", random.Next().ToString());
-                Console.WriteLine(client.Headers);
 
                 server.AddClient(client);
-                //sessions.AddSession(client.Headers["Id"], server.Id);
             }
         }
 
@@ -126,8 +130,7 @@ namespace LoadBalancer
         private Server ServerPicker()
         {
             int pos = algorithm.GetServerArrayPosition(servers.Count);
-            Console.WriteLine("Chosen position: " + pos);
-            Console.WriteLine("Amount of options: " + servers.Count);
+            Console.WriteLine("Chosen Server: " + pos);
             return servers.ElementAt(pos).Value;
         }
     }

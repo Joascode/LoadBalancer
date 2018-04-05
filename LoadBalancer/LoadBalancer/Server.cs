@@ -15,14 +15,16 @@ namespace LoadBalancer
     {
         Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
         Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
-        Action<byte[]> callback;
+        Action<Message<string, string>> callback;
         TcpClient server;
 
         public string guid = Guid.NewGuid().ToString();
 
         public string Id { get; set; }
 
-        public Server(string ip, int port, Action<byte[]> callback)
+        private const int BUFFER_SIZE = 1024;
+
+        public Server(string ip, int port, Action<Message<string,string>> callback)
         {
             Random random = new Random();
             int randomId = random.Next(1, 10);
@@ -68,7 +70,7 @@ namespace LoadBalancer
         private void HandleMessages()
         {
             int bytesRead;
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[BUFFER_SIZE];
 
             using (NetworkStream stream = server.GetStream())
             using (MemoryStream ms = new MemoryStream())
@@ -93,13 +95,21 @@ namespace LoadBalancer
                             ms.Write(buffer, 0, bytesRead);
                         } while (stream.DataAvailable);
 
-                        callback(ms.ToArray());
+                        callback(ConvertByteToMessage(ms.ToArray()));
                         ms.Flush();
 
-                        buffer = new byte[1024];
+                        buffer = new byte[BUFFER_SIZE];
                     }
                 }
             }
+        }
+
+        private Message<string, string> ConvertByteToMessage(byte[] message)
+        {
+            string stringMessage = Encoding.ASCII.GetString(message);
+            Console.WriteLine(stringMessage);
+            Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
+            return client;
         }
         
     }
