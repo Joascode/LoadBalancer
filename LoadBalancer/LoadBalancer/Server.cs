@@ -11,16 +11,16 @@ using System.Threading.Tasks;
 
 namespace LoadBalancer
 {
-    class Server
+    class Server : Chatter<string, string>
     {
-        Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
-        Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
-        Action<Message<string, string>> callback;
+        //Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
+        //Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
+        //Action<Message<string, string>> callback;
         TcpClient server;
 
-        public string guid = Guid.NewGuid().ToString();
+        //public string guid = Guid.NewGuid().ToString();
 
-        public string Id { get; set; }
+        //public string Id { get; set; }
 
         private const int BUFFER_SIZE = 1024;
 
@@ -41,13 +41,13 @@ namespace LoadBalancer
         {
             if(client.Headers.TryGetValue("Id", out string Id))
             {
-                clients.Add(Id, client);
+                //clients.Add(Id, client);
                 Console.WriteLine(client.Body);
                 AddMessage(client);
             }
         }
 
-        public void AddMessage(Message<string, string> client)
+        /*public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);
         }
@@ -110,7 +110,7 @@ namespace LoadBalancer
             Console.WriteLine(stringMessage);
             Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
             return client;
-        }
+        }*/
         
     }
 }

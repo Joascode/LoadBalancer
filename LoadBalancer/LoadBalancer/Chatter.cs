@@ -1,46 +1,39 @@
-﻿using Messages;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace LoadBalancer
 {
-    class ClientChatter : Chatter<string, string>
+    class Chatter<T,V>
     {
-        private TcpClient client;
-        //private Action<Message<string, string>> callback;
+        //Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
+        Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
+        Action<Message<string, string>> callback;
 
-        //public string Id { get; set; }
-        //public Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
+        public string guid = Guid.NewGuid().ToString();
 
-        //private const int BUFFER_SIZE = 1024;
+        public string Id { get; set; }
 
+        private const int BUFFER_SIZE = 1024;
 
-        public ClientChatter(TcpClient client, Action<Message<string, string>> callback)
+        public Chatter(string ip, int port, Action<Message<string, string>> callback)
         {
-            this.client = client;
-            this.callback = callback;
-
             Random random = new Random();
             int randomId = random.Next(1, 10);
             Id = randomId.ToString();
 
-            Console.WriteLine($"ClientChatterId: {Id}");
-
+            this.callback = callback;
             RunMessageTask();
         }
 
-        /*public void AddMessage(Message<string, string> client)
+        public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);
         }
 
-        private void RunMessageTask()
+        protected void RunMessageTask()
         {
             try
             {
@@ -60,32 +53,33 @@ namespace LoadBalancer
             int bytesRead;
             byte[] buffer = new byte[BUFFER_SIZE];
 
-            using (NetworkStream stream = client.GetStream())
+            using (NetworkStream stream = server.GetStream())
             using (MemoryStream ms = new MemoryStream())
             {
-                while (client.Connected)
+                while (server.Connected)
                 {
-                
                     if (messages.Count > 0)
                     {
+                        Console.WriteLine("Writing.");
                         Message<string, string> client = messages.Dequeue();
                         string clientAsString = JsonConvert.SerializeObject(client);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
+                        Console.WriteLine(clientAsString);
                     }
 
-                    if(stream.DataAvailable)
+                    if (stream.DataAvailable)
                     {
                         do
                         {
+                            Console.WriteLine("Reading.");
                             bytesRead = stream.Read(buffer, 0, buffer.Length);
                             ms.Write(buffer, 0, bytesRead);
                         } while (stream.DataAvailable);
 
                         callback(ConvertByteToMessage(ms.ToArray()));
-                        ms.SetLength(0);
+                        ms.Flush();
 
                         buffer = new byte[BUFFER_SIZE];
-                        bytesRead = 0;
                     }
                 }
             }
@@ -97,6 +91,6 @@ namespace LoadBalancer
             Console.WriteLine(stringMessage);
             Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
             return client;
-        }*/
+        }
     }
 }
