@@ -17,15 +17,15 @@ namespace LoadBalancer
     class LoadBalancerImpl
     {
         Dictionary<string, Server> servers = new Dictionary<string, Server>();
-        IServerAffinity<string, string> sessions;// = new SessionStorage();
+        public IServerAffinity<string, string> sessions { get; set; }  // = new SessionStorage();
         Dictionary<string, ClientChatter> clients = new Dictionary<string, ClientChatter>();
-        ILBAlgorithm algorithm;
-
+        public ILBAlgorithm algorithm { get; set; }
         TcpListener tcpListener;
 
         public int BufferSize { get; set; }
         private const string IP_ADDRESS = "127.0.0.1";
         private const int PORT = 8080;
+        private bool listening = false;
 
         public LoadBalancerImpl(string ip = IP_ADDRESS, int port = PORT)
         {
@@ -53,26 +53,30 @@ namespace LoadBalancer
 
         public async void Listen()
         {
+            listening = true;
             tcpListener.Start();
 
-            try
+            while(listening)
             {
-                TcpClient client = await tcpListener.AcceptTcpClientAsync();
-                if(client != null)
+                try
                 {
-                    Console.WriteLine("Client connected.");
-                    ClientChatter chatter = new ClientChatter(client, ClientMessageReceivedCallback);
-                    clients.Add(chatter.Id, chatter);
+                    TcpClient client = await tcpListener.AcceptTcpClientAsync();
+                    if (client != null)
+                    {
+                        Console.WriteLine("Client connected.");
+                        ClientChatter chatter = new ClientChatter(client, ClientMessageReceivedCallback);
+                        clients.Add(chatter.Id, chatter);
+                    }
                 }
-            }
-            catch(Exception e) when (
-                e is InvalidOperationException ||
-                e is SocketException ||
-                e is ArgumentNullException ||
-                e is ArgumentException
-            )
-            {
-                Console.WriteLine("Something went wrong when accepting a TcpClient, reason: " + e.Message);
+                catch (Exception e) when (
+                    e is InvalidOperationException ||
+                    e is SocketException ||
+                    e is ArgumentNullException ||
+                    e is ArgumentException
+                )
+                {
+                    Console.WriteLine("Something went wrong when accepting a TcpClient, reason: " + e.Message);
+                }
             }
         }
 

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,12 +26,13 @@ namespace LoadBalancer
     {
         private LoadBalancerImpl lb;
         private ObservableCollection<Server> ServerList = new ObservableCollection<Server>();
+        private Dictionary<string, string> algorithms = Utils.GetAssemblyNamesForTypes(typeof(ILBAlgorithm));
 
         public MainWindow()
         {
             InitializeComponent();
             //ServerListDataGrid.DataContext = ServerList;
-            Algorithms.ItemsSource = Utils.GetAssemblyNamesForTypes(typeof(ILBAlgorithm));
+            Algorithms.ItemsSource = algorithms.Keys;
             ServerAffinities.ItemsSource = Utils.GetServerAffinitys(typeof(IServerAffinity<,>));
         }
 
@@ -60,6 +62,35 @@ namespace LoadBalancer
                         }
                     }
                 }
+            }
+        }
+
+        private void Algorithms_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string algorithmName = Algorithms.SelectedItem.ToString();
+
+            string algorithmDll = algorithms[algorithmName];
+
+            Assembly assembly = Assembly.LoadFrom(algorithmDll);
+
+            Type type = assembly.GetType(algorithmName);
+
+            Console.WriteLine(type.ToString());
+
+            //Assembly.
+
+            //Type type = assembly.GetType(algorithmName);
+
+            //foreach(Type type in types)
+            //{
+            //    Console.WriteLine(type.ToString());
+            //}
+
+            dynamic algorithm = Activator.CreateInstance(type);
+
+            if(lb != null)
+            {
+                lb.algorithm = algorithm;
             }
         }
     }

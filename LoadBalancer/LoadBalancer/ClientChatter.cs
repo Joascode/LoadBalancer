@@ -12,7 +12,7 @@ namespace LoadBalancer
 {
     class ClientChatter : Chatter<string, string>
     {
-        private TcpClient client;
+        //private TcpClient client;
         //private Action<Message<string, string>> callback;
 
         //public string Id { get; set; }
@@ -21,18 +21,19 @@ namespace LoadBalancer
         //private const int BUFFER_SIZE = 1024;
 
 
-        public ClientChatter(TcpClient client, Action<Message<string, string>> callback)
+        public ClientChatter(TcpClient client, Action<Message<string, string>> callback) : base (client, callback)
         {
-            this.client = client;
-            this.callback = callback;
+            //this.client = client;
+            
+            //this.callback = callback;
 
-            Random random = new Random();
-            int randomId = random.Next(1, 10);
-            Id = randomId.ToString();
+            //Random random = new Random();
+            //int randomId = random.Next(1, 10);
+            //Id = randomId.ToString();
 
             Console.WriteLine($"ClientChatterId: {Id}");
 
-            RunMessageTask();
+            //RunMessageTask();
         }
 
         /*public void AddMessage(Message<string, string> client)

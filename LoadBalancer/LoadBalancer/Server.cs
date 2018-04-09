@@ -16,7 +16,7 @@ namespace LoadBalancer
         //Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
         //Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
         //Action<Message<string, string>> callback;
-        TcpClient server;
+        //TcpClient server;
 
         //public string guid = Guid.NewGuid().ToString();
 
@@ -24,17 +24,16 @@ namespace LoadBalancer
 
         private const int BUFFER_SIZE = 1024;
 
-        public Server(string ip, int port, Action<Message<string,string>> callback)
+        public Server(string ip, int port, Action<Message<string,string>> callback) : base (ip, port, callback)
         {
-            Random random = new Random();
-            int randomId = random.Next(1, 10);
-            Id = randomId.ToString();
+            //Random random = new Random();
+            //int randomId = random.Next(1, 10);
+            //Id = randomId.ToString();
             Console.WriteLine($"ServerId: {Id}");
 
-            server = new TcpClient();
-            server.Connect(ip, port);
-            this.callback = callback;
-            RunMessageTask();
+            
+            //this.callback = callback;
+            //RunMessageTask();
         }
 
         public void AddClient(Message<string, string> client)

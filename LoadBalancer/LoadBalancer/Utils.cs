@@ -52,11 +52,15 @@ namespace LoadBalancer
             return names;
         }
 
-        internal static List<string> GetAssemblyNamesForTypes(Type type)
+        internal static Dictionary<string, string> GetAssemblyNamesForTypes(Type type)
         {
             var files = Directory.GetFiles(PATH_NAME);
+            foreach(var file in files)
+            {
+                Console.WriteLine(file);
+            }
 
-            List<string> names = new List<string>();
+            Dictionary<string, string> names = new Dictionary<string, string>();
 
             foreach (var file in files)
             {
@@ -65,10 +69,10 @@ namespace LoadBalancer
                 var typedll = dll.GetTypes()
                     .Where(t => type.IsAssignableFrom(t))
                     .Where(t => t != type)
-                    .Select(t => t.Name)
+                    .Select(t => t.FullName)
                     .ToList();
 
-                typedll.ForEach(n => names.Add(n));
+                typedll.ForEach(n => names.Add(n, file));
             }
 
             return names;
