@@ -1,4 +1,5 @@
 ﻿using LBAlgorithm;
+using Messages;
 using ServerAffinity;
 using System;
 using System.Collections.Generic;
@@ -27,13 +28,14 @@ namespace LoadBalancer
         private LoadBalancerImpl lb;
         private ObservableCollection<Server> ServerList = new ObservableCollection<Server>();
         private Dictionary<string, string> algorithms = Utils.GetAssemblyNamesForTypes(typeof(ILBAlgorithm));
+        private Dictionary<string, string> affinities = Utils.GetAssemblyNamesForTypes(typeof(IServerAffinity));
 
         public MainWindow()
         {
             InitializeComponent();
-            //ServerListDataGrid.DataContext = ServerList;
+            ServerListDataGrid.ItemsSource = ServerList;
             Algorithms.ItemsSource = algorithms.Keys;
-            ServerAffinities.ItemsSource = Utils.GetServerAffinitys(typeof(IServerAffinity<,>));
+            ServerAffinities.ItemsSource = affinities.Keys;
         }
 
         private void StartBtn_Click(object sender, RoutedEventArgs e)
@@ -90,7 +92,27 @@ namespace LoadBalancer
 
             if(lb != null)
             {
-                lb.algorithm = algorithm;
+                lb.Algorithm = algorithm;
+            }
+        }
+
+        private void ServerAffinity_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string affinityName = ServerAffinities.SelectedItem.ToString();
+
+            string affinityDLL = affinities[affinityName];
+
+            Assembly assembly = Assembly.LoadFrom(affinityDLL);
+
+            Type type = assembly.GetType(affinityName);
+
+            Console.WriteLine(type.ToString());
+
+            dynamic affinity = Activator.CreateInstance(type);
+
+            if (lb != null)
+            {
+                lb.Sessions = affinity;
             }
         }
     }

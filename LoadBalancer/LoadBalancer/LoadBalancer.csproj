@@ -34,6 +34,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CookieStorage">
+      <HintPath>..\..\Assemblies\CookieStorage.dll</HintPath>
+    </Reference>
     <Reference Include="LBAlgorithm, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Assemblies\LBAlgorithm.dll</HintPath>
@@ -48,6 +51,9 @@
     <Reference Include="ServerAffinity, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Assemblies\ServerAffinity.dll</HintPath>
+    </Reference>
+    <Reference Include="SessionStorage">
+      <HintPath>..\..\Assemblies\SessionStorage.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -69,15 +75,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="AlgorithmFactory.cs" />
     <Compile Include="Chatter.cs" />
     <Compile Include="ClientChatter.cs" />
-    <Compile Include="CookieStorage.cs" />
-    <Compile Include="ISessionStorage.cs" />
-    <Compile Include="RandomAlgorithm.cs" />
-    <Compile Include="RoundRobinAlgorithm.cs" />
     <Compile Include="Server.cs" />
-    <Compile Include="SessionStorage.cs" />
+    <Compile Include="ServerViewModel.cs" />
     <Compile Include="Utils.cs" />
     <Page Include="LoadBalancerWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

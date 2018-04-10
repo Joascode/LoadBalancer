@@ -17,9 +17,9 @@ namespace LoadBalancer
     class LoadBalancerImpl
     {
         Dictionary<string, Server> servers = new Dictionary<string, Server>();
-        public IServerAffinity<string, string> sessions { get; set; }  // = new SessionStorage();
+        public IServerAffinity Sessions { get; set; }  // = new SessionStorage();
         Dictionary<string, ClientChatter> clients = new Dictionary<string, ClientChatter>();
-        public ILBAlgorithm algorithm { get; set; }
+        public ILBAlgorithm Algorithm { get; set; }
         TcpListener tcpListener;
 
         public int BufferSize { get; set; }
@@ -41,18 +41,11 @@ namespace LoadBalancer
             {
                 Console.WriteLine("Couldn't create a TcpListener, reason: " + e.Message);
             }
-
-            
-            //AlgorithmPicker("RD");
         }
-
-        /*public void AlgorithmPicker(string algoName)
-        {
-            algorithm = AlgorithmFactory.GetAlgorithm(algoName);
-        }*/
 
         public async void Listen()
         {
+            //Add closing off listening in the UI.
             listening = true;
             tcpListener.Start();
 
@@ -64,7 +57,7 @@ namespace LoadBalancer
                     if (client != null)
                     {
                         Console.WriteLine("Client connected.");
-                        ClientChatter chatter = new ClientChatter(client, ClientMessageReceivedCallback);
+                        ClientChatter chatter = new ClientChatter(client, SendMessageToServer);
                         clients.Add(chatter.Id, chatter);
                     }
                 }
@@ -82,13 +75,13 @@ namespace LoadBalancer
 
         public void AddServer(string ip, int port, Action<Server> AddServerCallback)
         {
-            Server server = new Server(ip, port, ServerMessageReceivedCallback);
+            Server server = new Server(ip, port, SendMessageToClient);
             servers.Add(server.Id, server);
             AddServerCallback(server);
         }
 
         // Bridge between Server and Client.
-        public void ServerMessageReceivedCallback(Message<string, string> client)
+        public void SendMessageToClient(Message<string, string> client)
         {
             if(clients.TryGetValue(client.Headers["Id"], out ClientChatter chatter))
             {
@@ -97,45 +90,72 @@ namespace LoadBalancer
         }
 
         // Bridge between Client and Server.
-        public void ClientMessageReceivedCallback(Message<string, string> client)
+        public void SendMessageToServer(Message<string, string> client)
         {
-            //TODO: Clean this up in the Sessionstorage implementation. Unnecessary information here. See new function at the bottom.
-            if(sessions != null)
+            SetClientIdHeader(client);
+            
+            if(ServerAffinityExists(client, out Server server))
             {
-                if (client.Headers.ContainsKey("Id"))
+                server.AddMessage(client);
+            } else
+            {
+                AlgorithmServerPicker(client);
+            }
+        }
+
+        //TODO: Fix this affinity shit to work with sessions or cookies.
+        private bool ServerAffinityExists(Message<string, string> message, out Server server)
+        {
+            if (Sessions != null)
+            {
+                if (message.Headers.ContainsKey("Id"))
                 {
-                    if (sessions.GetServerIdForClient(client.Headers["Id"], out string serverId))
+                    if (Sessions.GetServerIdForClient(message, out string serverId))
                     {
                         Console.WriteLine("Session exists.");
-                        if (servers.TryGetValue(serverId, out Server server))
+                        if (servers.TryGetValue(serverId, out Server sessionServer))
                         {
-                            server.AddMessage(client);
+                            server = sessionServer;
+                            return true;
                         }
 
                     }
                 }
             }
-            
-            //TODO: Clean this shit up.
-            else
-            {
-                Console.WriteLine("Connecting to new Server.");
-                Random random = new Random();
-
-                Server server = ServerPicker();
-
-                client.Headers.Add("Id", random.Next().ToString());
-
-                server.AddClient(client);
-            }
+            Console.WriteLine("No server affinity set.");
+            server = null;
+            return false;
         }
 
         //Add session check.
-        private Server ServerPicker()
+        private void AlgorithmServerPicker(Message<string, string> message)
         {
-            int pos = algorithm.GetServerArrayPosition(servers.Count);
-            Console.WriteLine("Chosen Server: " + pos);
-            return servers.ElementAt(pos).Value;
+            if(Algorithm != null)
+            {
+                int pos = Algorithm.GetServerArrayPosition(servers.Count);
+                Server server = servers.ElementAt(pos).Value;
+
+                Console.WriteLine("Chosen Server: " + pos);
+                Console.WriteLine("Connecting to new Server.");
+
+                server.AddClient(message);
+            }
+            else
+            {
+                Console.WriteLine("No algorithm selected.");
+                message.Body = "500: Internal Server Error.";
+                SendMessageToClient(message);
+            }
+            
+        }
+
+        private void SetClientIdHeader(Message<string, string> message)
+        {
+            if (!message.Headers.ContainsKey("Id"))
+            {
+                Random random = new Random();
+                message.Headers.Add("Id", random.Next().ToString());
+            }
         }
     }
 }

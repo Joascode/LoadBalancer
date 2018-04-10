@@ -28,11 +28,11 @@ namespace LoadBalancer
             return listAlgorithmNames;
         }
 
-        internal static List<string> GetServerAffinitys(Type serverAffinity)
+        internal static Dictionary<string, string> GetServerAffinitys(Type serverAffinity)
         {
             var files = Directory.GetFiles(PATH_NAME);
 
-            List<string> names = new List<string>();
+            Dictionary<string, string> names = new Dictionary<string, string>();
 
             foreach (var file in files)
             {
@@ -43,10 +43,10 @@ namespace LoadBalancer
                         x.IsGenericType &&
                         x.GetGenericTypeDefinition() == serverAffinity
                     ))
-                    .Select(t => t.Name)
+                    .Select(t => t.FullName)
                     .ToList();
 
-                typedll.ForEach(n => names.Add(n));
+                typedll.ForEach(n => names.Add(n, file));
             }
 
             return names;
@@ -55,10 +55,6 @@ namespace LoadBalancer
         internal static Dictionary<string, string> GetAssemblyNamesForTypes(Type type)
         {
             var files = Directory.GetFiles(PATH_NAME);
-            foreach(var file in files)
-            {
-                Console.WriteLine(file);
-            }
 
             Dictionary<string, string> names = new Dictionary<string, string>();
 

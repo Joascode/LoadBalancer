@@ -49,7 +49,7 @@
         </ListBox>
 
         <Label Grid.Column="1" Grid.Row="9" Margin="5,0,0,0" Content="ServerAffinities" />
-        <ListBox Name="ServerAffinities" Grid.Column="1" Grid.ColumnSpan="2" Margin="5, 10, 10, 5" Grid.Row="10" Grid.RowSpan="3">
+        <ListBox Name="ServerAffinities" Grid.Column="1" Grid.ColumnSpan="2" SelectionChanged="ServerAffinity_SelectedIndexChanged" Margin="5, 10, 10, 5" Grid.Row="10" Grid.RowSpan="3">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding}" />
