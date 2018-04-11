@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace LoadBalancer
 {
-    class Chatter<T,V>
+    abstract class Chatter<T,V>
     {
         //Dictionary<string, Message<string, string>> clients = new Dictionary<string, Message<string, string>>();
         protected Queue<Message<T, V>> messages = new Queue<Message<T, V>>();
@@ -80,8 +80,11 @@ namespace LoadBalancer
                     if (messages.Count > 0)
                     {
                         Console.WriteLine("Writing.");
-                        Message<T, V> client = messages.Dequeue();
-                        string clientAsString = JsonConvert.SerializeObject(client);
+                        Message<T, V> message = messages.Dequeue();
+
+
+
+                        string clientAsString = JsonConvert.SerializeObject(message);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
                         Console.WriteLine(clientAsString);
                     }

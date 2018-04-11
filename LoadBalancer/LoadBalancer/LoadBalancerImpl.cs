@@ -5,6 +5,7 @@ using ServerAffinity;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -21,11 +22,12 @@ namespace LoadBalancer
         Dictionary<string, ClientChatter> clients = new Dictionary<string, ClientChatter>();
         public ILBAlgorithm Algorithm { get; set; }
         TcpListener tcpListener;
+        Stopwatch stopWatch;
 
         public int BufferSize { get; set; }
         private const string IP_ADDRESS = "127.0.0.1";
         private const int PORT = 8080;
-        private bool listening = false;
+        public bool Listening = false;
 
         public LoadBalancerImpl(string ip = IP_ADDRESS, int port = PORT)
         {
@@ -33,6 +35,7 @@ namespace LoadBalancer
             try
             {
                 tcpListener = new TcpListener(IPAddress.Parse(ip), port);
+                stopWatch = new Stopwatch();
             }
             catch(Exception e) when (
                 e is ArgumentNullException ||
@@ -46,10 +49,11 @@ namespace LoadBalancer
         public async void Listen()
         {
             //Add closing off listening in the UI.
-            listening = true;
+            Listening = true;
             tcpListener.Start();
+            stopWatch.Start();
 
-            while(listening)
+            while(Listening)
             {
                 try
                 {
@@ -70,6 +74,8 @@ namespace LoadBalancer
                 {
                     Console.WriteLine("Something went wrong when accepting a TcpClient, reason: " + e.Message);
                 }
+
+                //CalculateServersLatency(5000);
             }
         }
 
@@ -93,13 +99,13 @@ namespace LoadBalancer
         public void SendMessageToServer(Message<string, string> client)
         {
             SetClientIdHeader(client);
-            
-            if(ServerAffinityExists(client, out Server server))
+
+            if (ServerAffinityExists(client, out Server server) || AlgorithmServerPicker(client, out server))
             {
+                server.AddHeader("Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), client);
                 server.AddMessage(client);
-            } else
-            {
-                AlgorithmServerPicker(client);
+                server.MessageCounter++;
+                Console.WriteLine(server.MessageCounter);
             }
         }
 
@@ -128,7 +134,7 @@ namespace LoadBalancer
         }
 
         //Add session check.
-        private void AlgorithmServerPicker(Message<string, string> message)
+        private bool AlgorithmServerPicker(Message<string, string> message, out Server serverOut)
         {
             if(Algorithm != null)
             {
@@ -138,13 +144,17 @@ namespace LoadBalancer
                 Console.WriteLine("Chosen Server: " + pos);
                 Console.WriteLine("Connecting to new Server.");
 
-                server.AddClient(message);
+                //server.AddClient(message);
+                serverOut = server;
+                return true;
             }
             else
             {
                 Console.WriteLine("No algorithm selected.");
                 message.Body = "500: Internal Server Error.";
                 SendMessageToClient(message);
+                serverOut = null;
+                return false;
             }
             
         }
@@ -156,6 +166,24 @@ namespace LoadBalancer
                 Random random = new Random();
                 message.Headers.Add("Id", random.Next().ToString());
             }
+        }
+
+        public void CalculateServersLatency(int delay, Action action)
+        {
+            while(Listening)
+            {
+                //Console.WriteLine("Calculating Latency's.");
+                if (stopWatch.ElapsedMilliseconds > delay)
+                {
+                    foreach (Server server in servers.Values)
+                    {
+                        server.CalculateLatency();
+                        server.CalculateMessagePerSecond(delay);
+                    }
+                    stopWatch.Restart();
+                    action();
+                }
+            } 
         }
     }
 }

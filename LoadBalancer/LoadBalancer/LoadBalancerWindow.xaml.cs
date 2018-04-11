@@ -42,6 +42,7 @@ namespace LoadBalancer
         {
             lb = new LoadBalancerImpl(port: 8080);
             lb.Listen();
+            Task.Run(() => lb.CalculateServersLatency(5000, RefreshServersDataGrid));
         }
 
         private void AddServer_KeyDown(object sender, KeyEventArgs e)
@@ -114,6 +115,19 @@ namespace LoadBalancer
             {
                 lb.Sessions = affinity;
             }
+        }
+
+        private void RefreshServersDataGrid()
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => RefreshServersDataGrid());
+                return;
+            }
+
+            Console.WriteLine("Refreshing Datagrid.");
+            ServerListDataGrid.Items.Refresh();
+
         }
     }
 }

@@ -23,6 +23,11 @@ namespace LoadBalancer
         //public string Id { get; set; }
 
         private const int BUFFER_SIZE = 1024;
+        public long Latency { get; set; }
+
+        private long TimeTracker;
+        public int MessageCounter;
+        public string AverageNrMessages { get; set; }
 
         public Server(string ip, int port, Action<Message<string,string>> callback) : base (ip, port, callback)
         {
@@ -43,6 +48,45 @@ namespace LoadBalancer
                 //clients.Add(Id, client);
                 Console.WriteLine(client.Body);
                 AddMessage(client);
+            }
+        }
+
+        public void AddHeader(string headerName, string headerValue, Message<string, string> message)
+        {
+            if(!message.Headers.ContainsKey(headerName))
+            {
+                message.Headers.Add(headerName, headerValue);
+            }
+        }
+
+        public void CalculateLatency()
+        {
+            if (MessageCounter != 0 && TimeTracker != 0)
+            {
+                Latency = TimeTracker / MessageCounter;
+                Console.WriteLine("Calculating Latency.");
+            }
+        }
+
+        public void CalculateMessageLatency(Message<string, string> message)
+        {
+            if(message.Headers.TryGetValue("Timestamp", out string msgTimestamp))
+            {
+                if(long.TryParse(msgTimestamp, out long timestamp))
+                {
+                    TimeTracker += DateTimeOffset.UtcNow.ToUnixTimeSeconds() - timestamp;
+                    Console.WriteLine("TimeTrack: " + TimeTracker);
+                }
+            }
+        }
+
+        public void CalculateMessagePerSecond(int delayInMilliSeconds)
+        {
+            if(delayInMilliSeconds != 0 && MessageCounter != 0)
+            {
+                int msgCount = MessageCounter / (delayInMilliSeconds / 1000);
+                AverageNrMessages = msgCount + " M/s";
+                MessageCounter = 0;
             }
         }
 
