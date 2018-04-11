@@ -36,6 +36,14 @@ namespace LoadBalancer
             //RunMessageTask();
         }
 
+        public override void SetMessageIdHeader(Message<string, string> message)
+        {
+            if (!message.Headers.ContainsKey("Id"))
+            {
+                message.Headers.Add("Id", Id);
+            }
+        }
+
         /*public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);

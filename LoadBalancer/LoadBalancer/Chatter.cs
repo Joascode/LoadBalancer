@@ -82,7 +82,7 @@ namespace LoadBalancer
                         Console.WriteLine("Writing.");
                         Message<T, V> message = messages.Dequeue();
 
-
+                        
 
                         string clientAsString = JsonConvert.SerializeObject(message);
                         stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
@@ -108,11 +108,14 @@ namespace LoadBalancer
             }
         }
 
+        public abstract void SetMessageIdHeader(Message<T, V> message);
+
         private Message<T, V> ConvertByteToMessage(byte[] message)
         {
             string stringMessage = Encoding.ASCII.GetString(message);
-            Console.WriteLine(stringMessage);
             Message<T, V> client = JsonConvert.DeserializeObject<Message<T, V>>(stringMessage);
+            SetMessageIdHeader(client);
+            Console.WriteLine(JsonConvert.SerializeObject(client));
             return client;
         }
     }

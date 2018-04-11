@@ -90,6 +90,15 @@ namespace LoadBalancer
             }
         }
 
+        public override void SetMessageIdHeader(Message<string, string> message)
+        {
+            if (!message.Headers.ContainsKey("Id"))
+            {
+                Random random = new Random();
+                message.Headers.Add("Id", random.Next().ToString());
+            }
+        }
+
         /*public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);
@@ -154,6 +163,6 @@ namespace LoadBalancer
             Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
             return client;
         }*/
-        
+
     }
 }

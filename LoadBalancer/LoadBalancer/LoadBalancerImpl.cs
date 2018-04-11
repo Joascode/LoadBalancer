@@ -98,8 +98,6 @@ namespace LoadBalancer
         // Bridge between Client and Server.
         public void SendMessageToServer(Message<string, string> client)
         {
-            SetClientIdHeader(client);
-
             if (ServerAffinityExists(client, out Server server) || AlgorithmServerPicker(client, out server))
             {
                 server.AddHeader("Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), client);
@@ -157,15 +155,6 @@ namespace LoadBalancer
                 return false;
             }
             
-        }
-
-        private void SetClientIdHeader(Message<string, string> message)
-        {
-            if (!message.Headers.ContainsKey("Id"))
-            {
-                Random random = new Random();
-                message.Headers.Add("Id", random.Next().ToString());
-            }
         }
 
         public void CalculateServersLatency(int delay, Action action)
