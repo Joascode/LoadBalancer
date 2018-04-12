@@ -28,6 +28,8 @@ namespace LoadBalancer
         private long TimeTracker;
         public int MessageCounter;
         public string AverageNrMessages { get; set; }
+        public HealthMonitoring.ServerStatus ServerStatus { get; set; }
+        private int msgCount;
 
         public Server(string ip, int port, Action<Message<string,string>> callback) : base (ip, port, callback)
         {
@@ -35,7 +37,7 @@ namespace LoadBalancer
             //int randomId = random.Next(1, 10);
             //Id = randomId.ToString();
             Console.WriteLine($"ServerId: {Id}");
-
+            ServerStatus = HealthMonitoring.ServerStatus.Unknown;
             
             //this.callback = callback;
             //RunMessageTask();
@@ -74,8 +76,7 @@ namespace LoadBalancer
             {
                 if(long.TryParse(msgTimestamp, out long timestamp))
                 {
-                    TimeTracker += DateTimeOffset.UtcNow.ToUnixTimeSeconds() - timestamp;
-                    Console.WriteLine("TimeTrack: " + TimeTracker);
+                    TimeTracker += DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - timestamp;
                 }
             }
         }
@@ -84,9 +85,33 @@ namespace LoadBalancer
         {
             if(delayInMilliSeconds != 0 && MessageCounter != 0)
             {
-                int msgCount = MessageCounter / (delayInMilliSeconds / 1000);
+                msgCount = MessageCounter / (delayInMilliSeconds / 1000);
                 AverageNrMessages = msgCount + " M/s";
+
                 MessageCounter = 0;
+                TimeTracker = 0;
+                
+            }
+            SetServerStatus();
+        }
+
+        private void SetServerStatus()
+        {
+            if(connected == false)
+            {
+                ServerStatus = HealthMonitoring.ServerStatus.Offline;
+            }
+            else if(Latency > 500)
+            {
+                ServerStatus = HealthMonitoring.ServerStatus.Slow;
+            }
+            else if(MessageCounter > 3)
+            {
+                ServerStatus = HealthMonitoring.ServerStatus.Busy;
+            }
+            else
+            {
+                ServerStatus = HealthMonitoring.ServerStatus.Good;
             }
         }
 
@@ -97,6 +122,16 @@ namespace LoadBalancer
                 Random random = new Random();
                 message.Headers.Add("Id", random.Next().ToString());
             }
+        }
+
+        public override void HijackReadMessage(Message<string, string> message)
+        {
+            CalculateMessageLatency(message);
+        }
+
+        public override void DisconnectedEvent()
+        {
+            connected = false;
         }
 
         /*public void AddMessage(Message<string, string> client)

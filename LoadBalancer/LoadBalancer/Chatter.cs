@@ -23,6 +23,7 @@ namespace LoadBalancer
         public string Id { get; set; }
 
         private const int BUFFER_SIZE = 1024;
+        protected bool connected = false;
 
         public Chatter(string ip, int port, Action<Message<T, V>> callback)
         {
@@ -69,46 +70,63 @@ namespace LoadBalancer
         //TODO: Clean this method up.
         private void HandleMessages()
         {
+            connected = true;
             int bytesRead;
             byte[] buffer = new byte[BUFFER_SIZE];
 
             using (NetworkStream stream = tcpClient.GetStream())
             using (MemoryStream ms = new MemoryStream())
             {
-                while (tcpClient.Connected)
+                while(connected)
                 {
-                    if (messages.Count > 0)
+                    if (tcpClient.Connected)
                     {
-                        Console.WriteLine("Writing.");
-                        Message<T, V> message = messages.Dequeue();
+                        if (messages.Count > 0)
+                        {
+                            Console.WriteLine("Writing.");
+                            Message<T, V> messageDequeued = messages.Dequeue();
 
-                        
+                            string clientAsString = JsonConvert.SerializeObject(messageDequeued);
+                            stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
+                            Console.WriteLine(clientAsString);
+                        }
 
-                        string clientAsString = JsonConvert.SerializeObject(message);
-                        stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
-                        Console.WriteLine(clientAsString);
-                    }
-
-                    if (stream.DataAvailable)
-                    {
                         do
                         {
                             Console.WriteLine("Reading.");
-                            bytesRead = stream.Read(buffer, 0, buffer.Length);
+                                
+                            try
+                            {
+                                bytesRead = stream.Read(buffer, 0, buffer.Length);
+                            }
+                            catch (IOException e)
+                            {
+                                Console.WriteLine("Server disconnected.");
+                                DisconnectedEvent();
+                                return;
+                            }
                             ms.Write(buffer, 0, bytesRead);
                         } while (stream.DataAvailable);
 
-                        callback(ConvertByteToMessage(ms.ToArray()));
+                        Message<T, V> message = ConvertByteToMessage(ms.ToArray());
+
+                        HijackReadMessage(message);
+
+                        callback(message);
                         ms.SetLength(0);
 
                         buffer = new byte[BUFFER_SIZE];
                         bytesRead = 0;
                     }
                 }
-            }
+            } 
         }
 
         public abstract void SetMessageIdHeader(Message<T, V> message);
+
+        public abstract void HijackReadMessage(Message<T, V> message);
+
+        public abstract void DisconnectedEvent();
 
         private Message<T, V> ConvertByteToMessage(byte[] message)
         {

@@ -100,7 +100,7 @@ namespace LoadBalancer
         {
             if (ServerAffinityExists(client, out Server server) || AlgorithmServerPicker(client, out server))
             {
-                server.AddHeader("Timestamp", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), client);
+                server.AddHeader("Timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(), client);
                 server.AddMessage(client);
                 server.MessageCounter++;
                 Console.WriteLine(server.MessageCounter);
@@ -136,8 +136,24 @@ namespace LoadBalancer
         {
             if(Algorithm != null)
             {
+                Server server;
                 int pos = Algorithm.GetServerArrayPosition(servers.Count);
-                Server server = servers.ElementAt(pos).Value;
+                try
+                {
+                     server = servers.ElementAt(pos).Value;
+                }
+                catch(Exception e) when (
+                    e is ArgumentNullException ||
+                    e is ArgumentOutOfRangeException
+                )
+                {
+                    Console.WriteLine("No server found. Are you sure servers are listening?");
+                    message.Body = "500: Internal Server Error.";
+                    SendMessageToClient(message);
+                    serverOut = null;
+                    return false;
+                }
+                
 
                 Console.WriteLine("Chosen Server: " + pos);
                 Console.WriteLine("Connecting to new Server.");

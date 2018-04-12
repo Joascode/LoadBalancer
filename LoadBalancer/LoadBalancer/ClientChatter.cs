@@ -44,6 +44,14 @@ namespace LoadBalancer
             }
         }
 
+        public override void HijackReadMessage(Message<string, string> message)
+        {
+        }
+
+        public override void DisconnectedEvent()
+        {
+        }
+
         /*public void AddMessage(Message<string, string> client)
         {
             messages.Enqueue(client);
