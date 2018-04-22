@@ -1,4 +1,5 @@
-﻿using Messages;
+﻿using Chatter;
+using Messages;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,28 +13,13 @@ namespace LoadBalancer
 {
     class ClientChatter : Chatter<string, string>
     {
-        //private TcpClient client;
-        //private Action<Message<string, string>> callback;
-
-        //public string Id { get; set; }
-        //public Queue<Message<string, string>> messages = new Queue<Message<string, string>>();
-
-        //private const int BUFFER_SIZE = 1024;
-
-
-        public ClientChatter(TcpClient client, Action<Message<string, string>> callback) : base (client, callback)
+        public ClientChatter(TcpClient client, Action<Message<string, string>> callback, int timeout = 2000) : base (client, callback, timeout)
         {
-            //this.client = client;
-            
-            //this.callback = callback;
-
-            //Random random = new Random();
-            //int randomId = random.Next(1, 10);
-            //Id = randomId.ToString();
+            Random random = new Random();
+            int randomId = random.Next(1, 200);
+            Id = randomId.ToString();
 
             Console.WriteLine($"ClientChatterId: {Id}");
-
-            //RunMessageTask();
         }
 
         public override void SetMessageIdHeader(Message<string, string> message)
@@ -46,74 +32,16 @@ namespace LoadBalancer
 
         public override void HijackReadMessage(Message<string, string> message)
         {
+            Console.WriteLine("Message received from Client: ");
         }
 
         public override void DisconnectedEvent()
         {
-        }
-
-        /*public void AddMessage(Message<string, string> client)
-        {
-            messages.Enqueue(client);
-        }
-
-        private void RunMessageTask()
-        {
-            try
+            if(connected == false)
             {
-                Task.Run(() => HandleMessages());
-            }
-            catch (Exception e) when (
-                e is ArgumentNullException
-            )
-            {
-                Console.WriteLine("An error occured in the server: " + e.Message);
+                CloseConnection();
+                Console.WriteLine("Client disconnected.");
             }
         }
-
-        //TODO: Clean this method up.
-        private void HandleMessages()
-        {
-            int bytesRead;
-            byte[] buffer = new byte[BUFFER_SIZE];
-
-            using (NetworkStream stream = client.GetStream())
-            using (MemoryStream ms = new MemoryStream())
-            {
-                while (client.Connected)
-                {
-                
-                    if (messages.Count > 0)
-                    {
-                        Message<string, string> client = messages.Dequeue();
-                        string clientAsString = JsonConvert.SerializeObject(client);
-                        stream.WriteAsync(Encoding.ASCII.GetBytes(clientAsString), 0, clientAsString.Length);
-                    }
-
-                    if(stream.DataAvailable)
-                    {
-                        do
-                        {
-                            bytesRead = stream.Read(buffer, 0, buffer.Length);
-                            ms.Write(buffer, 0, bytesRead);
-                        } while (stream.DataAvailable);
-
-                        callback(ConvertByteToMessage(ms.ToArray()));
-                        ms.SetLength(0);
-
-                        buffer = new byte[BUFFER_SIZE];
-                        bytesRead = 0;
-                    }
-                }
-            }
-        }
-
-        private Message<string, string> ConvertByteToMessage(byte[] message)
-        {
-            string stringMessage = Encoding.ASCII.GetString(message);
-            Console.WriteLine(stringMessage);
-            Message<string, string> client = JsonConvert.DeserializeObject<Message<string, string>>(stringMessage);
-            return client;
-        }*/
     }
 }

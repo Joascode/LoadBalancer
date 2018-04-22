@@ -34,6 +34,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Chatters">
+      <HintPath>..\..\Assemblies\Chatters.dll</HintPath>
+    </Reference>
     <Reference Include="CookieStorage">
       <HintPath>..\..\Assemblies\CookieStorage.dll</HintPath>
     </Reference>
@@ -51,6 +54,9 @@
     <Reference Include="ServerAffinity, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Assemblies\ServerAffinity.dll</HintPath>
+    </Reference>
+    <Reference Include="ServerChatters">
+      <HintPath>..\..\Assemblies\ServerChatters.dll</HintPath>
     </Reference>
     <Reference Include="SessionStorage">
       <HintPath>..\..\Assemblies\SessionStorage.dll</HintPath>
@@ -77,9 +83,7 @@
     </ApplicationDefinition>
     <Compile Include="Chatter.cs" />
     <Compile Include="ClientChatter.cs" />
-    <Compile Include="HealthMonitoring.cs" />
-    <Compile Include="Server.cs" />
-    <Compile Include="ServerViewModel.cs" />
+    <Compile Include="ServerChatter.cs" />
     <Compile Include="Utils.cs" />
     <Page Include="LoadBalancerWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

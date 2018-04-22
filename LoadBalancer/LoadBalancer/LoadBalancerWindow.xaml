@@ -30,14 +30,17 @@
         </Grid.RowDefinitions>
         <!--<ListBox Grid.Column="0" Grid.RowSpan="13" MinHeight="390" MinWidth="280" Name="Requests" ItemsSource="{Binding RequestsList}"  HorizontalAlignment="Left" Height="auto" Margin="5,10,0,0" VerticalAlignment="Top" Width="auto" />-->
         <DataGrid Name="ServerListDataGrid" Grid.Column="0" Grid.RowSpan="13" Margin="5, 10, 5, 10" ItemsSource="{Binding ServerList}" Height="auto" Width="auto" />
-        <Button Grid.Column="0" Grid.Row="14" Margin="10, 0, 0, 0" Name="ClearLogBtn" Content="Clear log" HorizontalAlignment="Left" VerticalAlignment="Top" Width="157"/>
-        <Button Grid.Column="2" Grid.Row="0" HorizontalAlignment="Right" Margin="0,0,5,0" Name="ListenBtn" Content="Start" VerticalAlignment="Center" Width="129" Click="StartBtn_Click" />
-        <TextBox Name="PortNumberTxt" Grid.Column="2" Grid.Row="1" Margin="0,0,5,0" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" Text="8080" VerticalAlignment="Center" Width="129"/>
+        <Button Grid.Column="2" Grid.Row="5" Margin="10, 5, 5, 0" Name="ClearAlgorithmBtn" Click="ClearAlgorithm_Click" Content="Clear Algorithm" HorizontalAlignment="right" VerticalAlignment="Top" Width="auto"/>
+        <Button Grid.Column="2" Grid.Row="5" Margin="5, 5, 10, 0" Name="ReloadAlgorithms" Click="ReloadAlgorithms_Click" Content="Reload Algorithm" HorizontalAlignment="left" VerticalAlignment="Top" Width="auto"/>
+        <Button Grid.Column="2" Grid.Row="9" Margin="10, 5, 5, 0" Name="ClearAffinityBtn" Click="ClearAffinity_Click" Content="Clear Affinity" HorizontalAlignment="right" VerticalAlignment="Top" Width="auto"/>
+        <Button Grid.Column="2" Grid.Row="9" Margin="5, 5, 10, 0" Name="ReloadAffinityBtn" Click="ReloadAffinity_Click" Content="Reload Affinity" HorizontalAlignment="Left" VerticalAlignment="Top" Width="auto"/>
+        <Button Grid.Column="2" Grid.Row="0" HorizontalAlignment="Right" Margin="0,0,5,0" Name="StartBtn" Content="Start" VerticalAlignment="Center" Width="129" Click="StartBtn_Click" />
+        <TextBox Name="PortNumberTxt" KeyDown="SetLBPort_KeyDown" Grid.Column="2" Grid.Row="1" Margin="0,0,5,0" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" Text="8080" VerticalAlignment="Center" Width="129"/>
         <TextBox Name="ServerPortTxt" KeyDown="AddServer_KeyDown" Grid.Column="2" Grid.Row="2" Margin="0,0,5,0" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" Text="8081" VerticalAlignment="Center" Width="129" />
         <Label Grid.Column="1" Grid.Row="2" Margin="5,0,0,0" Content="Add Server" HorizontalAlignment="Left" VerticalAlignment="Center" Width="74"/>
         <Label Grid.Column="1" Grid.Row="1" Margin="5,0,0,0" Content="Port" HorizontalAlignment="Left" VerticalAlignment="Center" Width="95"/>
         <Label Grid.Column="1" Grid.Row="4" Margin="5,2,0,2" Content="Remove Server ID:" HorizontalAlignment="Left" VerticalAlignment="Center" Width="auto"/>
-        <TextBox x:Name="ServerRemoveTxt" Grid.Column="2" Grid.Row="4" Margin="0,3.5,5,3.5" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" VerticalAlignment="Center" Width="129" />
+        <TextBox x:Name="ServerRemoveTxt" KeyDown="RemoveServer_KeyDown" Grid.Column="2" Grid.Row="4" Margin="0,3.5,5,3.5" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" VerticalAlignment="Center" Width="129" />
 
         <Label Grid.Column="1" Grid.Row="5" Margin="5,0,0,0" Content="Algorithms" />
         <ListBox Name="Algorithms" Grid.Column="1" Grid.ColumnSpan="2" SelectionChanged="Algorithms_SelectedIndexChanged" Margin="5, 10, 10, 5" Grid.Row="6" Grid.RowSpan="3">
@@ -57,6 +60,6 @@
             </ListBox.ItemTemplate>
         </ListBox>
         <Label Grid.Column="1" Grid.Row="3" Margin="5,2,0,2" Content="Reconnect Server ID:" HorizontalAlignment="Left" VerticalAlignment="Center" Width="auto"/>
-        <TextBox x:Name="ServerReconnectTxt" Grid.Column="2" Grid.Row="3" Margin="0,3.5,5,3.5" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" VerticalAlignment="Center" Width="129" />
+        <TextBox x:Name="ServerReconnectTxt" KeyDown="ReconnectServer_KeyDown" Grid.Column="2" Grid.Row="3" Margin="0,3.5,5,3.5" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" VerticalAlignment="Center" Width="129" />
     </Grid>
 </Window>

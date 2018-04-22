@@ -52,7 +52,7 @@ namespace LoadBalancer
             return names;
         }
 
-        internal static Dictionary<string, string> GetAssemblyNamesForTypes(Type type)
+        internal static Dictionary<string, string> GetAssemblyNamesForType(Type type)
         {
             var files = Directory.GetFiles(PATH_NAME);
 

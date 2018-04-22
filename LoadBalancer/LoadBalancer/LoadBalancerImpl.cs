@@ -2,6 +2,7 @@
 using Messages;
 using Newtonsoft.Json;
 using ServerAffinity;
+using ServerChatters;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,8 +18,8 @@ namespace LoadBalancer
 {
     class LoadBalancerImpl
     {
-        Dictionary<string, Server> servers = new Dictionary<string, Server>();
-        public IServerAffinity Sessions { get; set; }  // = new SessionStorage();
+        Dictionary<string, ServerChatter> servers = new Dictionary<string, ServerChatter>();
+        public IServerAffinity Sessions { get; set; }
         Dictionary<string, ClientChatter> clients = new Dictionary<string, ClientChatter>();
         public ILBAlgorithm Algorithm { get; set; }
         TcpListener tcpListener;
@@ -31,7 +32,6 @@ namespace LoadBalancer
 
         public LoadBalancerImpl(string ip = IP_ADDRESS, int port = PORT)
         {
-            // Encapsulate with try/catch
             try
             {
                 tcpListener = new TcpListener(IPAddress.Parse(ip), port);
@@ -44,6 +44,23 @@ namespace LoadBalancer
             {
                 Console.WriteLine("Couldn't create a TcpListener, reason: " + e.Message);
             }
+        }
+
+        //Handle all the clean up.
+        public void Stop()
+        {
+            foreach(ServerChatter server in servers.Values)
+            {
+                server.CloseConnection();
+            }
+            foreach(ClientChatter client in clients.Values)
+            {
+                client.CloseConnection();
+            }
+
+            tcpListener.Stop();
+            stopWatch.Stop();
+            Listening = false;
         }
 
         public async void Listen()
@@ -61,7 +78,7 @@ namespace LoadBalancer
                     if (client != null)
                     {
                         Console.WriteLine("Client connected.");
-                        ClientChatter chatter = new ClientChatter(client, SendMessageToServer);
+                        ClientChatter chatter = new ClientChatter(client, SendMessageToServer, timeout: 5000);
                         clients.Add(chatter.Id, chatter);
                     }
                 }
@@ -74,16 +91,44 @@ namespace LoadBalancer
                 {
                     Console.WriteLine("Something went wrong when accepting a TcpClient, reason: " + e.Message);
                 }
-
-                //CalculateServersLatency(5000);
             }
         }
 
-        public void AddServer(string ip, int port, Action<Server> AddServerCallback)
+        public void AddServer(string ip, int port, Action<ServerChatter> AddServerCallback)
         {
-            Server server = new Server(ip, port, SendMessageToClient);
+            foreach(ServerChatter sc in servers.Values)
+            {
+                if(sc.Port == port)
+                {
+                    Console.WriteLine("Port is already in use.");
+                    return;
+                }
+            }
+
+            ServerChatter server = new ServerChatter(ip, port, SendMessageToClient);
             servers.Add(server.Id, server);
             AddServerCallback(server);
+
+            Console.WriteLine($"Added server with port: {port}");
+        }
+
+        public void ReconnectServer(string serverId)
+        {
+            if (servers.TryGetValue(serverId, out ServerChatter server))
+            {
+                Console.WriteLine("Trying to reconnect to server.");
+                Task.Run(() => server.ReconnectServer());
+            }
+        }
+
+        public void RemoveServer(string serverId, Action<ServerChatter> RemoveServerCallback)
+        {
+            if(servers.TryGetValue(serverId, out ServerChatter server))
+            {
+                server.CloseConnection();
+                servers.Remove(serverId);
+                RemoveServerCallback(server);
+            }
         }
 
         // Bridge between Server and Client.
@@ -98,17 +143,35 @@ namespace LoadBalancer
         // Bridge between Client and Server.
         public void SendMessageToServer(Message<string, string> client)
         {
-            if (ServerAffinityExists(client, out Server server) || AlgorithmServerPicker(client, out server))
+            //Fix this to first check if ServerAffinity returns a server or not.
+            if (ServerAffinityExists(client, out ServerChatter server) || AlgorithmServerPicker(client, out server))
             {
-                server.AddHeader("Timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(), client);
-                server.AddMessage(client);
-                server.MessageCounter++;
-                Console.WriteLine(server.MessageCounter);
+                if(server == null)
+                {
+                    client.Body = "503: Internal Server Error.";
+                    SendMessageToClient(client);
+                }
+                else if(server.Status == ServerChatter.ServerStatus.Offline)
+                {
+                    client.Body = "503: Internal Server Error.";
+                    SendMessageToClient(client);
+                }
+                else
+                {
+                    server.UpdateHeader("Timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(), client);
+                    server.AddMessage(client);
+                    server.MessageCounter++;
+                    Console.WriteLine(server.MessageCounter);
+                }
+            }
+            else if (server == null)
+            {
+                SendMessageToClient(client);
             }
         }
 
         //TODO: Fix this affinity shit to work with sessions or cookies.
-        private bool ServerAffinityExists(Message<string, string> message, out Server server)
+        private bool ServerAffinityExists(Message<string, string> message, out ServerChatter server)
         {
             if (Sessions != null)
             {
@@ -117,12 +180,33 @@ namespace LoadBalancer
                     if (Sessions.GetServerIdForClient(message, out string serverId))
                     {
                         Console.WriteLine("Session exists.");
-                        if (servers.TryGetValue(serverId, out Server sessionServer))
+                        if (servers.TryGetValue(serverId, out ServerChatter sessionServer))
                         {
                             server = sessionServer;
                             return true;
                         }
-
+                        else
+                        {
+                            Console.WriteLine("Server doesn't exist where it used to.");
+                            server = null;
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        if(AlgorithmServerPicker(message, out ServerChatter randomServer))
+                        {
+                            Console.WriteLine("Adding client to session.");
+                            Sessions.AddSession(message, randomServer.Id);
+                            server = randomServer;
+                            return true;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Couldn't set server affinity.");
+                            server = null;
+                            return false;
+                        }
                     }
                 }
             }
@@ -132,30 +216,19 @@ namespace LoadBalancer
         }
 
         //Add session check.
-        private bool AlgorithmServerPicker(Message<string, string> message, out Server serverOut)
+        private bool AlgorithmServerPicker(Message<string, string> message, out ServerChatter serverOut)
         {
             if(Algorithm != null)
             {
-                Server server;
-                int pos = Algorithm.GetServerArrayPosition(servers.Count);
-                try
-                {
-                     server = servers.ElementAt(pos).Value;
-                }
-                catch(Exception e) when (
-                    e is ArgumentNullException ||
-                    e is ArgumentOutOfRangeException
-                )
+                ServerChatter server = Algorithm.GetServerArrayPosition(servers);
+                if(server == null)
                 {
                     Console.WriteLine("No server found. Are you sure servers are listening?");
-                    message.Body = "500: Internal Server Error.";
-                    SendMessageToClient(message);
-                    serverOut = null;
+                    message.Body = "503: No Server Found.";
+                    serverOut = server;
                     return false;
                 }
-                
-
-                Console.WriteLine("Chosen Server: " + pos);
+                Console.WriteLine("Chosen Server: " + server.Id);
                 Console.WriteLine("Connecting to new Server.");
 
                 //server.AddClient(message);
@@ -166,7 +239,6 @@ namespace LoadBalancer
             {
                 Console.WriteLine("No algorithm selected.");
                 message.Body = "500: Internal Server Error.";
-                SendMessageToClient(message);
                 serverOut = null;
                 return false;
             }
@@ -180,7 +252,7 @@ namespace LoadBalancer
                 //Console.WriteLine("Calculating Latency's.");
                 if (stopWatch.ElapsedMilliseconds > delay)
                 {
-                    foreach (Server server in servers.Values)
+                    foreach (ServerChatter server in servers.Values)
                     {
                         server.CalculateLatency();
                         server.CalculateMessagePerSecond(delay);

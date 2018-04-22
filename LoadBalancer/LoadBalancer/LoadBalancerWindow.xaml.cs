@@ -1,6 +1,7 @@
 ﻿using LBAlgorithm;
 using Messages;
 using ServerAffinity;
+using ServerChatters;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,9 +27,11 @@ namespace LoadBalancer
     public partial class MainWindow : Window
     {
         private LoadBalancerImpl lb;
-        private ObservableCollection<Server> ServerList = new ObservableCollection<Server>();
-        private Dictionary<string, string> algorithms = Utils.GetAssemblyNamesForTypes(typeof(ILBAlgorithm));
-        private Dictionary<string, string> affinities = Utils.GetAssemblyNamesForTypes(typeof(IServerAffinity));
+        private ObservableCollection<ServerChatter> ServerList = new ObservableCollection<ServerChatter>();
+        private Dictionary<string, string> algorithms = Utils.GetAssemblyNamesForType(typeof(ILBAlgorithm));
+        private Dictionary<string, string> affinities = Utils.GetAssemblyNamesForType(typeof(IServerAffinity));
+        private bool started = false;
+        private int port = 8080;
 
         public MainWindow()
         {
@@ -40,9 +43,42 @@ namespace LoadBalancer
 
         private void StartBtn_Click(object sender, RoutedEventArgs e)
         {
-            lb = new LoadBalancerImpl(port: 8080);
-            lb.Listen();
-            Task.Run(() => lb.CalculateServersLatency(5000, RefreshServersDataGrid));
+            if(started)
+            {
+                started = false;
+                StartBtn.Content = "Start";
+                lb.Stop();
+            }
+            else
+            {
+                lb = new LoadBalancerImpl(port: port);
+                lb.Listen();
+                Task.Run(() => lb.CalculateServersLatency(2000, RefreshServersDataGrid));
+                started = true;
+                StartBtn.Content = "Stop";
+            }
+        }
+
+        private void SetLBPort_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                if (int.TryParse(ServerPortTxt.Text, out int newPort))
+                {
+                    if (newPort <= 0)
+                    {
+                        Console.WriteLine("Please enter a positive port number.");
+                    }
+                    else
+                    {
+                        if (lb != null) Console.WriteLine("Can't adjust port when load balancer is listening.");
+                        else
+                        {
+                            port = newPort;
+                        }
+                    }
+                }
+            }
         }
 
         private void AddServer_KeyDown(object sender, KeyEventArgs e)
@@ -61,60 +97,113 @@ namespace LoadBalancer
                         else
                         {
                             lb.AddServer("127.0.0.1", port, (server) => ServerList.Add(server));
-                            Console.WriteLine($"Added server with port: {port}");
                         }
                     }
                 }
             }
         }
 
+        private void RemoveServer_KeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.Key == Key.Return)
+            {
+                if (int.TryParse(ServerRemoveTxt.Text, out int serverId))
+                {
+                    lb.RemoveServer(serverId.ToString(), (server) => ServerList.Remove(server));
+                    
+                }
+            }
+        }
+
+        private void ReconnectServer_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                if (int.TryParse(ServerReconnectTxt.Text, out int serverId))
+                {
+                    lb.ReconnectServer(serverId.ToString());
+                }
+            }
+        }
+
         private void Algorithms_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string algorithmName = Algorithms.SelectedItem.ToString();
-
-            string algorithmDll = algorithms[algorithmName];
-
-            Assembly assembly = Assembly.LoadFrom(algorithmDll);
-
-            Type type = assembly.GetType(algorithmName);
-
-            Console.WriteLine(type.ToString());
-
-            //Assembly.
-
-            //Type type = assembly.GetType(algorithmName);
-
-            //foreach(Type type in types)
-            //{
-            //    Console.WriteLine(type.ToString());
-            //}
-
-            dynamic algorithm = Activator.CreateInstance(type);
-
-            if(lb != null)
+            if (Algorithms.SelectedItem != null)
             {
-                lb.Algorithm = algorithm;
+                string algorithmName = Algorithms.SelectedItem.ToString();
+
+                string algorithmDll = algorithms[algorithmName];
+
+                Assembly assembly = Assembly.LoadFrom(algorithmDll);
+
+                Type type = assembly.GetType(algorithmName);
+
+                Console.WriteLine(type.ToString());
+
+                dynamic algorithm = Activator.CreateInstance(type);
+
+                if (lb != null)
+                {
+                    lb.Algorithm = algorithm;
+                }
             }
         }
 
         private void ServerAffinity_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string affinityName = ServerAffinities.SelectedItem.ToString();
+            if(ServerAffinities.SelectedItem != null)
+            {
+                string affinityName = ServerAffinities.SelectedItem.ToString();
 
-            string affinityDLL = affinities[affinityName];
+                string affinityDLL = affinities[affinityName];
 
-            Assembly assembly = Assembly.LoadFrom(affinityDLL);
+                Assembly assembly = Assembly.LoadFrom(affinityDLL);
 
-            Type type = assembly.GetType(affinityName);
+                Type type = assembly.GetType(affinityName);
 
-            Console.WriteLine(type.ToString());
+                Console.WriteLine(type.ToString());
 
-            dynamic affinity = Activator.CreateInstance(type);
+                dynamic affinity = Activator.CreateInstance(type);
 
+                if (lb != null)
+                {
+                    lb.Sessions = affinity;
+                }
+            }
+        }
+
+        private void ClearAlgorithm_Click(object sender, RoutedEventArgs e)
+        {
+            Algorithms.UnselectAll();
             if (lb != null)
             {
-                lb.Sessions = affinity;
+                lb.Algorithm = null;
+                Console.WriteLine("Clearing set algorithms.");
             }
+        }
+
+        private void ReloadAlgorithms_Click(object sender, RoutedEventArgs e)
+        {
+            algorithms = Utils.GetAssemblyNamesForType(typeof(ILBAlgorithm));
+            Algorithms.ItemsSource = algorithms.Keys;
+            Console.WriteLine("Reload algorithm assemblies.");
+        }
+
+        private void ClearAffinity_Click(object sender, RoutedEventArgs e)
+        {
+            ServerAffinities.UnselectAll();
+            if (lb != null)
+            {
+                lb.Sessions = null;
+                Console.WriteLine("Clearing set affinities.");
+            }
+        }
+
+        private void ReloadAffinity_Click(object sender, RoutedEventArgs e)
+        {
+            affinities = Utils.GetAssemblyNamesForType(typeof(IServerAffinity));
+            ServerAffinities.ItemsSource = affinities.Keys;
+            Console.WriteLine("Reload affinity assemblies.");
         }
 
         private void RefreshServersDataGrid()
