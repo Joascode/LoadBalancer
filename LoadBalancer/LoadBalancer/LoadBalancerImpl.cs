@@ -148,12 +148,12 @@ namespace LoadBalancer
             {
                 if(server == null)
                 {
-                    client.Body = "503: Internal Server Error.";
+                    client.Body = "503: No Server Found.";
                     SendMessageToClient(client);
                 }
                 else if(server.Status == ServerChatter.ServerStatus.Offline)
                 {
-                    client.Body = "503: Internal Server Error.";
+                    client.Body = "503: No Server Found.";
                     SendMessageToClient(client);
                 }
                 else
